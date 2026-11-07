@@ -1,0 +1,16 @@
+# Binarios pesados y APKs (para evitar el límite de 100MB de GitHub)
+*.apk
+*.aab
+*.exe
+
+# Carpetas de compilación
+**/build/
+**/.dart_tool/
+**/.idea/
+**/.flutter-plugins*
+**/.gradle/
+
+# Archivos de entorno y temporales
+*.iml
+.DS_Store
+Thumbs.db
