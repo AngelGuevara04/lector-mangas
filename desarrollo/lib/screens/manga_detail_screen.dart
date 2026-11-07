@@ -351,11 +351,15 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
   }
 
   void _openReader(BuildContext context, Chapter chapter) {
+    final mangaProvider = Provider.of<MangaProvider>(context, listen: false);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
           chapter: chapter,
+          allChapters: _isAscending
+              ? mangaProvider.currentChapters
+              : mangaProvider.currentChapters.reversed.toList(),
           isWebtoon: widget.manga.prefersWebtoonLayout,
         ),
       ),

@@ -6,15 +6,17 @@ import '../models/chapter.dart';
 class MangaDexService {
   static const String baseUrl = 'https://api.mangadex.org';
   static const Map<String, String> defaultHeaders = {
-    'User-Agent': 'AmorsReader/1.0.0 (https://github.com/amors)',
+    'User-Agent': 'AmorsReader/1.0.0 (https://github.com/AngelGuevara04/lector-mangas)',
     'Accept': 'application/json',
   };
 
-  /// Búsqueda de manga con soporte de filtros (idioma original, texto)
+  /// Búsqueda avanzada de manga con soporte de filtros (idioma original, texto, estado, orden)
   Future<List<Manga>> searchManga({
     String? query,
     String? originalLanguage,
-    int limit = 20,
+    String? status,
+    String sortOrder = 'relevance',
+    int limit = 24,
     int offset = 0,
   }) async {
     final queryParams = <String, dynamic>{
@@ -22,7 +24,6 @@ class MangaDexService {
       'offset': offset.toString(),
       'includes[]': 'cover_art',
       'contentRating[]': ['safe', 'suggestive'],
-      'order[relevance]': 'desc',
     };
 
     if (query != null && query.trim().isNotEmpty) {
@@ -31,6 +32,25 @@ class MangaDexService {
 
     if (originalLanguage != null && originalLanguage != 'all') {
       queryParams['originalLanguage[]'] = originalLanguage;
+    }
+
+    if (status != null && status != 'all') {
+      queryParams['status[]'] = status;
+    }
+
+    // Orden de resultados
+    switch (sortOrder) {
+      case 'popular':
+        queryParams['order[followedCount]'] = 'desc';
+        break;
+      case 'rating':
+        queryParams['order[rating]'] = 'desc';
+        break;
+      case 'latest':
+        queryParams['order[latestUploadedChapter]'] = 'desc';
+        break;
+      default:
+        queryParams['order[relevance]'] = 'desc';
     }
 
     final uri = Uri.parse('$baseUrl/manga').replace(
@@ -53,33 +73,17 @@ class MangaDexService {
 
   /// Obtiene los mangas más populares
   Future<List<Manga>> getPopularManga({
-    int limit = 20,
+    int limit = 24,
     int offset = 0,
     String? originalLanguage,
+    String sortOrder = 'popular',
   }) async {
-    final queryParams = <String, dynamic>{
-      'limit': limit.toString(),
-      'offset': offset.toString(),
-      'includes[]': 'cover_art',
-      'contentRating[]': ['safe', 'suggestive'],
-      'order[followedCount]': 'desc',
-    };
-
-    if (originalLanguage != null && originalLanguage != 'all') {
-      queryParams['originalLanguage[]'] = originalLanguage;
-    }
-
-    final uri = Uri.parse('$baseUrl/manga').replace(
-      queryParameters: _encodeQueryParameters(queryParams),
+    return searchManga(
+      originalLanguage: originalLanguage,
+      sortOrder: sortOrder,
+      limit: limit,
+      offset: offset,
     );
-
-    final response = await http.get(uri, headers: defaultHeaders);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final list = data['data'] as List<dynamic>? ?? [];
-      return list.map((item) => Manga.fromMangaDexJson(item)).toList();
-    }
-    return [];
   }
 
   /// Obtiene los capítulos de un manga
@@ -103,13 +107,28 @@ class MangaDexService {
       queryParameters: _encodeQueryParameters(queryParams),
     );
 
-    final response = await http.get(uri, headers: defaultHeaders);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final list = data['data'] as List<dynamic>? ?? [];
-      return list.map((item) => Chapter.fromMangaDexJson(item, mangaId)).toList();
-    }
+    try {
+      final response = await http.get(uri, headers: defaultHeaders);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final list = data['data'] as List<dynamic>? ?? [];
+        return list.map((item) => Chapter.fromMangaDexJson(item, mangaId)).toList();
+      }
+    } catch (_) {}
     return [];
+  }
+
+  /// Obtiene un manga específico por su ID
+  Future<Manga?> getMangaById(String mangaId) async {
+    final uri = Uri.parse('$baseUrl/manga/$mangaId?includes[]=cover_art');
+    try {
+      final response = await http.get(uri, headers: defaultHeaders);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Manga.fromMangaDexJson(data['data']);
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Obtiene las URLs de las páginas de un capítulo
@@ -141,7 +160,6 @@ class MangaDexService {
     }
   }
 
-  /// Convierte listas a parámetros de consulta compatibles
   static Map<String, dynamic> _encodeQueryParameters(Map<String, dynamic> params) {
     final result = <String, dynamic>{};
     params.forEach((key, value) {

@@ -23,8 +23,17 @@ class MangaProvider with ChangeNotifier {
   String _selectedCategory = 'all'; // 'all', 'ko' (Manhwa), 'ja' (Manga), 'zh' (Manhua)
   String get selectedCategory => _selectedCategory;
 
+  String _sortOrder = 'popular'; // 'popular', 'rating', 'latest'
+  String get sortOrder => _sortOrder;
+
+  String _statusFilter = 'all'; // 'all', 'ongoing', 'completed'
+  String get statusFilter => _statusFilter;
+
   List<Manga> _favorites = [];
   List<Manga> get favorites => _favorites;
+
+  List<HistoryEntry> _history = [];
+  List<HistoryEntry> get history => _history;
 
   // Detalles del manga actual
   List<Chapter> _currentChapters = [];
@@ -34,11 +43,17 @@ class MangaProvider with ChangeNotifier {
 
   MangaProvider() {
     loadFavorites();
+    loadHistory();
     fetchInitial();
   }
 
   void loadFavorites() {
     _favorites = _storage.getFavorites();
+    notifyListeners();
+  }
+
+  void loadHistory() {
+    _history = _storage.getReadingHistory();
     notifyListeners();
   }
 
@@ -55,11 +70,13 @@ class MangaProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _items = await _api.getPopularManga(
+      _items = await _api.searchManga(
         originalLanguage: _selectedCategory == 'all' ? null : _selectedCategory,
+        status: _statusFilter == 'all' ? null : _statusFilter,
+        sortOrder: _sortOrder,
       );
     } catch (e) {
-      _error = 'No se pudo conectar con el servidor. Revisa tu conexión a internet.';
+      _error = 'No se pudo conectar con el servidor. Revisa tu conexión.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -69,6 +86,22 @@ class MangaProvider with ChangeNotifier {
   void setCategory(String category) {
     if (_selectedCategory == category) return;
     _selectedCategory = category;
+    _executeSearchOrFetch();
+  }
+
+  void setSortOrder(String sort) {
+    if (_sortOrder == sort) return;
+    _sortOrder = sort;
+    _executeSearchOrFetch();
+  }
+
+  void setStatusFilter(String status) {
+    if (_statusFilter == status) return;
+    _statusFilter = status;
+    _executeSearchOrFetch();
+  }
+
+  void _executeSearchOrFetch() {
     if (_searchQuery.trim().isEmpty) {
       fetchInitial();
     } else {
@@ -89,6 +122,8 @@ class MangaProvider with ChangeNotifier {
         _items = await _api.searchManga(
           query: query,
           originalLanguage: _selectedCategory == 'all' ? null : _selectedCategory,
+          status: _statusFilter == 'all' ? null : _statusFilter,
+          sortOrder: _sortOrder,
         );
       }
     } catch (e) {
@@ -128,5 +163,9 @@ class MangaProvider with ChangeNotifier {
       _isLoadingChapters = false;
       notifyListeners();
     }
+  }
+
+  Future<Manga?> getManga(String mangaId) async {
+    return await _api.getMangaById(mangaId);
   }
 }

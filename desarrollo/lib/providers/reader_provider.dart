@@ -9,12 +9,21 @@ enum ReadingMode {
   comicLTR,        // Cómic occidental: De izquierda a derecha
 }
 
+enum ReaderTheme {
+  oledBlack, // Negro absoluto (#000000) - Máximo ahorro de batería
+  darkGray,  // Gris oscuro (#141414)
+  sepia,     // Sepia suave (#1a1714)
+}
+
 class ReaderProvider with ChangeNotifier {
   final MangaDexService _api = MangaDexService();
   final StorageService _storage = StorageService();
 
   Chapter? _currentChapter;
   Chapter? get currentChapter => _currentChapter;
+
+  List<Chapter> _chapterList = [];
+  int _currentChapterIndex = -1;
 
   List<String> _pageUrls = [];
   List<String> get pageUrls => _pageUrls;
@@ -37,6 +46,21 @@ class ReaderProvider with ChangeNotifier {
   ReadingMode _mode = ReadingMode.webtoonVertical;
   ReadingMode get mode => _mode;
 
+  ReaderTheme _theme = ReaderTheme.oledBlack;
+  ReaderTheme get theme => _theme;
+
+  bool get hasNextChapter =>
+      _chapterList.isNotEmpty && _currentChapterIndex + 1 < _chapterList.length;
+
+  bool get hasPreviousChapter =>
+      _chapterList.isNotEmpty && _currentChapterIndex > 0;
+
+  Chapter? get nextChapter =>
+      hasNextChapter ? _chapterList[_currentChapterIndex + 1] : null;
+
+  Chapter? get previousChapter =>
+      hasPreviousChapter ? _chapterList[_currentChapterIndex - 1] : null;
+
   ReaderProvider() {
     _dataSaver = _storage.getDataSaver();
   }
@@ -55,6 +79,11 @@ class ReaderProvider with ChangeNotifier {
 
   void setReadingMode(ReadingMode mode) {
     _mode = mode;
+    notifyListeners();
+  }
+
+  void setTheme(ReaderTheme theme) {
+    _theme = theme;
     notifyListeners();
   }
 
@@ -85,6 +114,28 @@ class ReaderProvider with ChangeNotifier {
     }
   }
 
+  void setChapterContext({
+    required List<Chapter> chapters,
+    required Chapter activeChapter,
+  }) {
+    _chapterList = chapters;
+    _currentChapterIndex = chapters.indexWhere((c) => c.id == activeChapter.id);
+  }
+
+  Future<void> goToNextChapter() async {
+    if (hasNextChapter) {
+      _currentChapterIndex++;
+      await loadChapter(_chapterList[_currentChapterIndex]);
+    }
+  }
+
+  Future<void> goToPreviousChapter() async {
+    if (hasPreviousChapter) {
+      _currentChapterIndex--;
+      await loadChapter(_chapterList[_currentChapterIndex]);
+    }
+  }
+
   Future<void> loadChapter(Chapter chapter, {bool keepPage = false}) async {
     _currentChapter = chapter;
     _isLoading = true;
@@ -99,7 +150,7 @@ class ReaderProvider with ChangeNotifier {
         _error = 'Este capítulo no tiene páginas disponibles para visualización.';
       }
     } catch (e) {
-      _error = 'Error al cargar las páginas del capítulo.';
+      _error = 'Error al cargar las páginas del capítulo. Verifica tu conexión.';
     } finally {
       _isLoading = false;
       notifyListeners();
