@@ -5,14 +5,18 @@ import '../providers/reader_provider.dart';
 import '../widgets/optimized_image.dart';
 import '../services/update_service.dart';
 
+import '../models/manga.dart';
+
 class ReaderScreen extends StatefulWidget {
   final Chapter chapter;
+  final Manga? manga;
   final List<Chapter> allChapters;
   final bool isWebtoon;
 
   const ReaderScreen({
     super.key,
     required this.chapter,
+    this.manga,
     this.allChapters = const [],
     this.isWebtoon = false,
   });
@@ -31,8 +35,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _pageController = PageController();
     _scrollController = ScrollController();
 
+    _scrollController.addListener(() {
+      final reader = Provider.of<ReaderProvider>(context, listen: false);
+      if (reader.mode == ReadingMode.webtoonVertical &&
+          _scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0 &&
+          reader.pageUrls.isNotEmpty) {
+        final fraction = (_scrollController.position.pixels /
+                _scrollController.position.maxScrollExtent)
+            .clamp(0.0, 1.0);
+        final page = (fraction * (reader.pageUrls.length - 1)).round();
+        reader.setPage(page);
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final reader = Provider.of<ReaderProvider>(context, listen: false);
+      if (widget.manga != null) {
+        reader.setMangaInfo(
+          title: widget.manga!.title,
+          coverUrl: widget.manga!.coverUrl,
+        );
+      }
       if (widget.isWebtoon) {
         reader.setReadingMode(ReadingMode.webtoonVertical);
       }

@@ -29,6 +29,24 @@ class MangaProvider with ChangeNotifier {
   String _statusFilter = 'all'; // 'all', 'ongoing', 'completed'
   String get statusFilter => _statusFilter;
 
+  String? _selectedGenreId;
+  String? get selectedGenreId => _selectedGenreId;
+
+  static const Map<String, String> popularGenres = {
+    'Todos los géneros': '',
+    'Acción': '391b0423-d847-456f-aff0-8b0cfc03066b',
+    'Romance': '423e2eae-a7a2-4a8b-ac03-a8351462d71d',
+    'Comedia': '4d32cc48-9f00-4cca-9b5a-a839f0764984',
+    'Fantasía': 'cdc58593-87dd-415e-bbc0-2ec27bf404cc',
+    'Isekai': 'ace04997-f6bd-436e-b261-779182193d3d',
+    'Drama': 'b9af3a63-f058-46de-a9a0-e0c13906197a',
+    'Terror': 'cdad7e68-1419-41dd-bdce-27753074a640',
+    'Misterio': 'ee968100-4191-4968-93d3-f82d72be7e46',
+    'Sobrenatural': 'eabc5b4c-6aff-42f3-b657-3e90cbd00b75',
+    'Ciencia Ficción': '256c8bd9-4904-4360-bf4f-508a76d67183',
+    'Deportes': '69964a64-2f90-4d33-beeb-f3ed2875eb4c',
+  };
+
   bool _isHentaiZone = false;
   bool get isHentaiZone => _isHentaiZone;
 
@@ -76,6 +94,7 @@ class MangaProvider with ChangeNotifier {
       _items = await _api.searchManga(
         originalLanguage: _selectedCategory == 'all' ? null : _selectedCategory,
         status: _statusFilter == 'all' ? null : _statusFilter,
+        genreTagId: _selectedGenreId,
         sortOrder: _sortOrder,
         isHentai: _isHentaiZone,
       );
@@ -111,6 +130,13 @@ class MangaProvider with ChangeNotifier {
     _executeSearchOrFetch();
   }
 
+  void setGenre(String? genreId) {
+    final clean = (genreId != null && genreId.isNotEmpty) ? genreId : null;
+    if (_selectedGenreId == clean) return;
+    _selectedGenreId = clean;
+    _executeSearchOrFetch();
+  }
+
   void _executeSearchOrFetch() {
     if (_searchQuery.trim().isEmpty) {
       fetchInitial();
@@ -133,6 +159,7 @@ class MangaProvider with ChangeNotifier {
           query: query,
           originalLanguage: _selectedCategory == 'all' ? null : _selectedCategory,
           status: _statusFilter == 'all' ? null : _statusFilter,
+          genreTagId: _selectedGenreId,
           sortOrder: _sortOrder,
           isHentai: _isHentaiZone,
         );

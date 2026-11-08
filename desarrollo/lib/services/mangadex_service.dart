@@ -15,6 +15,7 @@ class MangaDexService {
     String? query,
     String? originalLanguage,
     String? status,
+    String? genreTagId,
     String sortOrder = 'relevance',
     bool isHentai = false,
     int limit = 24,
@@ -35,6 +36,10 @@ class MangaDexService {
 
     if (query != null && query.trim().isNotEmpty) {
       queryParams['title'] = query.trim();
+    }
+
+    if (genreTagId != null && genreTagId.isNotEmpty) {
+      queryParams['includedTags[]'] = [genreTagId];
     }
 
     if (originalLanguage != null && originalLanguage != 'all') {

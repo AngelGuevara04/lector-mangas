@@ -142,12 +142,28 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Barra de Ordenamiento y Estado (En emisión / Finalizados)
-          Padding(
+          // Barra de Ordenamiento, Estado y Género
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Filtro de Géneros
+                DropdownButton<String>(
+                  value: mangaProvider.selectedGenreId ?? '',
+                  dropdownColor: const Color(0xFF222222),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  underline: const SizedBox(),
+                  icon: const Icon(Icons.category, color: Colors.purpleAccent, size: 16),
+                  items: MangaProvider.popularGenres.entries.map((e) {
+                    return DropdownMenuItem(value: e.value, child: Text(e.key));
+                  }).toList(),
+                  onChanged: (val) {
+                    mangaProvider.setGenre(val);
+                  },
+                ),
+                const SizedBox(width: 14),
+
                 // Orden
                 DropdownButton<String>(
                   value: mangaProvider.sortOrder,
@@ -164,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (val != null) mangaProvider.setSortOrder(val);
                   },
                 ),
+                const SizedBox(width: 14),
 
                 // Filtro de Estado
                 DropdownButton<String>(
@@ -489,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'MangaFlow ${UpdateService.currentVersion}',
+            'AppParaMiAmors ${UpdateService.currentVersion}',
             style: TextStyle(color: Colors.grey[400], fontSize: 12),
           ),
           const SizedBox(height: 16),
@@ -670,7 +687,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- Comprobación de Actualización ---
+  // --- Comprobación de Actualización con Descarga e Instalación Directa ---
   Future<void> _handleCheckUpdate() async {
     setState(() => _isCheckingUpdate = true);
     final info = await UpdateService.checkForUpdate();
@@ -679,50 +696,130 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     if (info.hasUpdate) {
+      bool isDownloading = false;
+      double downloadProgress = 0.0;
+      String downloadStatus = '';
+
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: const Color(0xFF222222),
-          title: Row(
-            children: [
-              const Icon(Icons.system_update, color: Colors.greenAccent),
-              const SizedBox(width: 8),
-              Text('¡Nueva Versión ${info.latestVersion}!'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Versión actual: ${info.currentVersion}',
-                  style: const TextStyle(color: Colors.white60, fontSize: 12)),
-              const SizedBox(height: 10),
-              const Text('Novedades:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(info.changelog, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Más tarde', style: TextStyle(color: Colors.white60)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
-              onPressed: () {
-                Navigator.pop(context);
-                if (info.apkDownloadUrl != null) {
-                  UpdateService.openUrl(info.apkDownloadUrl!);
-                }
-              },
-              child: const Text('Descargar APK', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+        barrierDismissible: false,
+        builder: (dialogCtx) => StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF222222),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              title: Row(
+                children: [
+                  const Icon(Icons.system_update, color: Colors.greenAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '¡Nueva Versión ${info.latestVersion}!',
+                      style: const TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Versión instalada: ${info.currentVersion}',
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('Novedades:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 120),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        info.changelog,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Barra de progreso de descarga interna
+                  if (isDownloading) ...[
+                    LinearProgressIndicator(
+                      value: downloadProgress > 0 ? downloadProgress : null,
+                      backgroundColor: Colors.white12,
+                      valueColor: const AlwaysStoppedAnimation(Colors.deepPurpleAccent),
+                      minHeight: 6,
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        downloadStatus,
+                        style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                if (!isDownloading) ...[
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    child: const Text('Más tarde', style: TextStyle(color: Colors.white60)),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurpleAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Descargar e Instalar'),
+                    onPressed: () async {
+                      if (info.apkDownloadUrl == null) return;
+                      setDialogState(() {
+                        isDownloading = true;
+                        downloadProgress = 0.0;
+                        downloadStatus = 'Iniciando descarga...';
+                      });
+
+                      final apkFile = await UpdateService.downloadApk(
+                        info.apkDownloadUrl!,
+                        onProgress: (progress, status) {
+                          setDialogState(() {
+                            downloadProgress = progress;
+                            downloadStatus = status;
+                          });
+                        },
+                      );
+
+                      if (apkFile != null) {
+                        setDialogState(() {
+                          downloadStatus = 'Abriendo instalador nativo...';
+                        });
+                        final success = await UpdateService.installApk(apkFile);
+                        if (!success) {
+                          // Si falla el canal nativo, ofrecer abrir enlace directo
+                          UpdateService.openUrl(info.apkDownloadUrl!);
+                        }
+                        if (dialogCtx.mounted) {
+                          Navigator.pop(dialogCtx);
+                        }
+                      } else {
+                        setDialogState(() {
+                          isDownloading = false;
+                          downloadStatus = 'Error en la descarga. Intenta desde el navegador.';
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ya cuentas con la versión más reciente (v1.0.0).')),
+        SnackBar(content: Text('Ya cuentas con la versión más reciente (${UpdateService.currentVersion}).')),
       );
     }
   }

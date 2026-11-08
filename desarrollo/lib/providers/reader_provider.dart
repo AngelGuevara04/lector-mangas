@@ -22,6 +22,9 @@ class ReaderProvider with ChangeNotifier {
   Chapter? _currentChapter;
   Chapter? get currentChapter => _currentChapter;
 
+  String? _mangaTitle;
+  String? _coverUrl;
+
   List<Chapter> _chapterList = [];
   int _currentChapterIndex = -1;
 
@@ -87,6 +90,11 @@ class ReaderProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setMangaInfo({String? title, String? coverUrl}) {
+    _mangaTitle = title;
+    _coverUrl = coverUrl;
+  }
+
   void setPage(int page) {
     if (_currentPage != page && page >= 0 && page < _pageUrls.length) {
       _currentPage = page;
@@ -96,6 +104,8 @@ class ReaderProvider with ChangeNotifier {
       if (_currentChapter != null) {
         _storage.saveProgress(
           mangaId: _currentChapter!.mangaId,
+          mangaTitle: _mangaTitle,
+          coverUrl: _coverUrl,
           chapterId: _currentChapter!.id,
           chapterNum: _currentChapter!.chapter,
           pageIndex: page,
@@ -148,6 +158,17 @@ class ReaderProvider with ChangeNotifier {
       _pageUrls = await _api.getChapterPages(chapter.id, dataSaver: _dataSaver);
       if (_pageUrls.isEmpty) {
         _error = 'Este capítulo no tiene páginas disponibles para visualización.';
+      } else {
+        // Guardar progreso inicial de inmediato al abrir el capítulo
+        _storage.saveProgress(
+          mangaId: chapter.mangaId,
+          mangaTitle: _mangaTitle,
+          coverUrl: _coverUrl,
+          chapterId: chapter.id,
+          chapterNum: chapter.chapter,
+          pageIndex: _currentPage,
+          totalPages: _pageUrls.length,
+        );
       }
     } catch (e) {
       _error = 'Error al cargar las páginas del capítulo. Verifica tu conexión.';

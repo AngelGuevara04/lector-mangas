@@ -383,6 +383,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
           chapter: chapter,
+          manga: widget.manga,
           allChapters: _isAscending
               ? mangaProvider.currentChapters
               : mangaProvider.currentChapters.reversed.toList(),
