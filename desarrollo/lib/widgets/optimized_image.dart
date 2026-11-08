@@ -33,7 +33,7 @@ class OptimizedImage extends StatelessWidget {
       height: height,
       memCacheWidth: targetMemWidth,
       httpHeaders: const {
-        'User-Agent': 'AmorsReader/1.0.0 (https://github.com/amors)',
+        'User-Agent': 'MangaFlow/1.0.2 (https://github.com/AngelGuevara04/lector-mangas)',
       },
       placeholder: (context, url) => Container(
         color: const Color(0xFF1E1E1E),

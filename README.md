@@ -1,4 +1,4 @@
-# 📖 Amors Reader - Lector de Mangas, Manhwas y Cómics
+# 📖 MangaFlow - Lector de Mangas, Manhwas y Cómics Ultra Ligero
 
 Aplicación móvil ultra ligera desarrollada en **Flutter**, diseñada especialmente para **teléfonos de gama baja o antiguos** y equipada con un motor de búsqueda y lectura en línea en tiempo real sin descargas previas.
 
@@ -16,14 +16,16 @@ Aplicación móvil ultra ligera desarrollada en **Flutter**, diseñada especialm
   * 📜 **Modo Webtoon (Vertical Continuo):** Ideal para Manhwas coreanos sin cortes entre páginas.
   * 📖 **Modo Manga (Horizontal RTL):** Paginación japonesa tradicional de derecha a izquierda.
   * 📘 **Modo Cómic (Horizontal LTR):** Paginación occidental de izquierda a derecha.
-* **🔍 Zoom Táctil:** Soporte de *pinch-to-zoom* con doble toque y gestos fluidos.
-* **📚 Biblioteca y Favoritos:** Guarda tus obras favoritas y mantén el progreso de lectura sin bases de datos pesadas en segundo plano.
-* **🇲🇽 Soporte de Idiomas:** Filtro prioritario en Español (Latino y España), con opción de buscar en inglés.
+* **🔍 Zoom Táctil y Temas OLED:** Soporte de *pinch-to-zoom* con doble toque y selección de temas (Negro OLED, Gris Oscuro, Sepia).
+* **📚 Biblioteca, Historial y Continuar Leyendo:** Guarda tus obras favoritas y continúa exactamente en el capítulo y página donde te quedaste.
+* **🔄 Actualizador Remoto:** Comprobador de nuevas versiones conectado directamente a GitHub Releases.
+* **💡 Buzón de Sugerencias:** Envío directo de solicitudes de mejoras a GitHub Issues.
 
 ---
 
 ## 📂 Estructura del Repositorio
 
+* `MangaFlow.apk`: Instalador listo para cualquier dispositivo Android.
 * `desarrollo/`: Contiene el código fuente completo en Flutter, dependencias y configuración de compilación de Android.
 * `desarrollo/compilar_apk.bat`: Script automatizado para compilar el proyecto y colocar el APK en la raíz.
 

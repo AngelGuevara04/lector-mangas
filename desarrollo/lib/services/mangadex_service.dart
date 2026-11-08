@@ -6,7 +6,7 @@ import '../models/chapter.dart';
 class MangaDexService {
   static const String baseUrl = 'https://api.mangadex.org';
   static const Map<String, String> defaultHeaders = {
-    'User-Agent': 'AmorsReader/1.0.0 (https://github.com/AngelGuevara04/lector-mangas)',
+    'User-Agent': 'MangaFlow/1.0.2 (https://github.com/AngelGuevara04/lector-mangas)',
     'Accept': 'application/json',
   };
 

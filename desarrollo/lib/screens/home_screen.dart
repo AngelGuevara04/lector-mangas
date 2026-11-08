@@ -446,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Amors Reader ${UpdateService.currentVersion}',
+            'MangaFlow ${UpdateService.currentVersion}',
             style: TextStyle(color: Colors.grey[400], fontSize: 12),
           ),
           const SizedBox(height: 16),

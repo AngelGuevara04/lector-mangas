@@ -28,11 +28,11 @@ void main() async {
     ),
   );
 
-  runApp(const AmorsReaderApp());
+  runApp(const MangaFlowApp());
 }
 
-class AmorsReaderApp extends StatelessWidget {
-  const AmorsReaderApp({super.key});
+class MangaFlowApp extends StatelessWidget {
+  const MangaFlowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class AmorsReaderApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReaderProvider()),
       ],
       child: MaterialApp(
-        title: 'Amors Reader',
+        title: 'MangaFlow',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           brightness: Brightness.dark,

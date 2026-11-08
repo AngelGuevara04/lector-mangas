@@ -21,7 +21,7 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = 'v1.0.0';
+  static const String currentVersion = 'v1.0.2';
   static const String repoOwner = 'AngelGuevara04';
   static const String repoName = 'lector-mangas';
 
@@ -38,7 +38,7 @@ class UpdateService {
         Uri.parse(releasesApiUrl),
         headers: {
           'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'AmorsReader-App',
+          'User-Agent': 'MangaFlow-App',
         },
       );
 
@@ -123,7 +123,7 @@ class UpdateService {
 $description
 
 ---
-*Enviado desde Amors Reader Mobile*
+*Enviado desde MangaFlow Mobile*
 ''';
 
     final uri = Uri.parse(issuesUrl).replace(
