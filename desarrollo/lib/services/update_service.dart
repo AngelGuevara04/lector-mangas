@@ -25,7 +25,7 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = 'v1.0.5';
+  static const String currentVersion = 'v1.0.6';
   static const String repoOwner = 'AngelGuevara04';
   static const String repoName = 'lector-mangas';
   static const MethodChannel _channel = MethodChannel('com.amors.reader/updater');

@@ -146,11 +146,13 @@ class ReaderProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loadChapter(Chapter chapter, {bool keepPage = false}) async {
+  Future<void> loadChapter(Chapter chapter, {bool keepPage = false, int initialPage = 0}) async {
     _currentChapter = chapter;
     _isLoading = true;
     _error = null;
-    if (!keepPage) _currentPage = 0;
+    if (!keepPage) {
+      _currentPage = initialPage;
+    }
     _pageUrls = [];
     notifyListeners();
 
@@ -159,7 +161,10 @@ class ReaderProvider with ChangeNotifier {
       if (_pageUrls.isEmpty) {
         _error = 'Este capítulo no tiene páginas disponibles para visualización.';
       } else {
-        // Guardar progreso inicial de inmediato al abrir el capítulo
+        if (_currentPage >= _pageUrls.length) {
+          _currentPage = (_pageUrls.length - 1).clamp(0, _pageUrls.length - 1);
+        }
+        // Guardar progreso respetando la página inicial restaurada
         _storage.saveProgress(
           mangaId: chapter.mangaId,
           mangaTitle: _mangaTitle,

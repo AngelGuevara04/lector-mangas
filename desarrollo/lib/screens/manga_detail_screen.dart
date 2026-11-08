@@ -216,7 +216,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             onPressed: () {
-                              _openReader(context, resumeChapter ?? chapters.first);
+                              final targetChapter = resumeChapter ?? chapters.first;
+                              final page = (resumeChapter != null && lastProgress != null)
+                                  ? lastProgress.pageIndex
+                                  : 0;
+                              _openReader(context, targetChapter, initialPage: page);
                             },
                           ),
                         ),
@@ -235,7 +239,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 onPressed: () {
-                                  _openReader(context, chapters.first);
+                                  _openReader(context, chapters.first, initialPage: 0);
                                 },
                               ),
                             ),
@@ -510,7 +514,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         size: 14,
                         color: ch.isExternal ? Colors.lightBlueAccent : Colors.white38,
                       ),
-                      onTap: () => _openReader(context, ch),
+                      onTap: () {
+                        final isResume = resumeChapter?.id == ch.id;
+                        final page = (isResume && lastProgress != null) ? lastProgress.pageIndex : 0;
+                        _openReader(context, ch, initialPage: page);
+                      },
                       onLongPress: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         await StorageService().toggleChapterRead(ch.id);
@@ -539,7 +547,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
     );
   }
 
-  Future<void> _openReader(BuildContext context, Chapter chapter) async {
+  Future<void> _openReader(BuildContext context, Chapter chapter, {int initialPage = 0}) async {
     final mangaProvider = Provider.of<MangaProvider>(context, listen: false);
     await Navigator.push(
       context,
@@ -551,6 +559,7 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
               ? mangaProvider.currentChapters
               : mangaProvider.currentChapters.reversed.toList(),
           isWebtoon: widget.manga.prefersWebtoonLayout,
+          initialPage: initialPage,
         ),
       ),
     );

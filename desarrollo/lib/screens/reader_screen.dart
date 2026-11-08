@@ -19,6 +19,7 @@ class ReaderScreen extends StatefulWidget {
   final Manga? manga;
   final List<Chapter> allChapters;
   final bool isWebtoon;
+  final int initialPage;
 
   const ReaderScreen({
     super.key,
@@ -26,6 +27,7 @@ class ReaderScreen extends StatefulWidget {
     this.manga,
     this.allChapters = const [],
     this.isWebtoon = false,
+    this.initialPage = 0,
   });
 
   @override
@@ -40,7 +42,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController = PageController(initialPage: widget.initialPage);
     _scrollController = ScrollController();
 
     _scrollController.addListener(() {
@@ -57,7 +59,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final reader = Provider.of<ReaderProvider>(context, listen: false);
       if (widget.manga != null) {
         reader.setMangaInfo(
@@ -74,7 +76,23 @@ class _ReaderScreenState extends State<ReaderScreen> {
           activeChapter: widget.chapter,
         );
       }
-      reader.loadChapter(widget.chapter);
+      await reader.loadChapter(widget.chapter, initialPage: widget.initialPage);
+
+      if (mounted && widget.initialPage > 0) {
+        if (reader.mode != ReadingMode.webtoonVertical && _pageController.hasClients) {
+          _pageController.jumpToPage(widget.initialPage);
+        } else if (reader.mode == ReadingMode.webtoonVertical) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients &&
+                _scrollController.position.maxScrollExtent > 0 &&
+                reader.pageUrls.isNotEmpty) {
+              final targetFraction = (widget.initialPage / reader.pageUrls.length).clamp(0.0, 1.0);
+              final targetOffset = targetFraction * _scrollController.position.maxScrollExtent;
+              _scrollController.jumpTo(targetOffset);
+            }
+          });
+        }
+      }
     });
   }
 
