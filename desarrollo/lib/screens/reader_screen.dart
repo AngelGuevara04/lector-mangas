@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/chapter.dart';
 import '../providers/reader_provider.dart';
@@ -6,6 +7,12 @@ import '../widgets/optimized_image.dart';
 import '../services/update_service.dart';
 
 import '../models/manga.dart';
+
+enum ReaderOrientationLock {
+  auto,
+  portrait,
+  landscape,
+}
 
 class ReaderScreen extends StatefulWidget {
   final Chapter chapter;
@@ -28,6 +35,7 @@ class ReaderScreen extends StatefulWidget {
 class _ReaderScreenState extends State<ReaderScreen> {
   late PageController _pageController;
   late ScrollController _scrollController;
+  ReaderOrientationLock _orientationLock = ReaderOrientationLock.auto;
 
   @override
   void initState() {
@@ -70,10 +78,57 @@ class _ReaderScreenState extends State<ReaderScreen> {
     });
   }
 
+  void _cycleOrientation() {
+    setState(() {
+      if (_orientationLock == ReaderOrientationLock.auto) {
+        _orientationLock = ReaderOrientationLock.portrait;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+        _showToast('Rotación: Bloqueada en Vertical');
+      } else if (_orientationLock == ReaderOrientationLock.portrait) {
+        _orientationLock = ReaderOrientationLock.landscape;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        _showToast('Rotación: Bloqueada en Horizontal');
+      } else {
+        _orientationLock = ReaderOrientationLock.auto;
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        _showToast('Rotación: Automática (Libre)');
+      }
+    });
+  }
+
+  void _showToast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(milliseconds: 1200),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
     _scrollController.dispose();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -281,6 +336,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     ),
                     tooltip: reader.dataSaver ? 'Modo Ultra Ligero (Activo)' : 'Modo Alta Definición',
                     onPressed: () => reader.toggleDataSaver(),
+                  ),
+                  // Botón de Bloqueo de Rotación de Pantalla
+                  IconButton(
+                    icon: Icon(
+                      _orientationLock == ReaderOrientationLock.auto
+                          ? Icons.screen_rotation_outlined
+                          : _orientationLock == ReaderOrientationLock.portrait
+                              ? Icons.screen_lock_portrait
+                              : Icons.screen_lock_landscape,
+                      color: _orientationLock != ReaderOrientationLock.auto
+                          ? Colors.deepPurpleAccent
+                          : Colors.white70,
+                      size: 20,
+                    ),
+                    tooltip: _orientationLock == ReaderOrientationLock.auto
+                        ? 'Rotación: Automática'
+                        : _orientationLock == ReaderOrientationLock.portrait
+                            ? 'Rotación: Bloqueada en Vertical'
+                            : 'Rotación: Bloqueada en Horizontal',
+                    onPressed: _cycleOrientation,
                   ),
                   // Menú de tema de fondo
                   PopupMenuButton<ReaderTheme>(

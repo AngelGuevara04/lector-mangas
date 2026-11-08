@@ -53,6 +53,7 @@ class HistoryEntry {
 class StorageService {
   static const _keyFavorites = 'amors_favorites';
   static const _keyHistory = 'amors_history_v2';
+  static const _keyReadChapters = 'amors_read_chapters';
   static const _keySettingsDataSaver = 'settings_data_saver';
   static const _keySettingsLanguage = 'settings_language';
   static const _keySettingsReadingMode = 'settings_reading_mode';
@@ -144,6 +145,39 @@ class StorageService {
 
     final encoded = history.map((e) => json.encode(e.toMap())).toList();
     await _prefs?.setStringList(_keyHistory, encoded);
+    await markChapterAsRead(chapterId);
+  }
+
+  // --- Capítulos Leídos ---
+  Set<String> getReadChapters() {
+    final list = _prefs?.getStringList(_keyReadChapters) ?? [];
+    return list.toSet();
+  }
+
+  bool isChapterRead(String chapterId) {
+    final list = _prefs?.getStringList(_keyReadChapters) ?? [];
+    return list.contains(chapterId);
+  }
+
+  Future<void> markChapterAsRead(String chapterId) async {
+    final list = _prefs?.getStringList(_keyReadChapters) ?? [];
+    if (!list.contains(chapterId)) {
+      list.add(chapterId);
+      if (list.length > 2000) {
+        list.removeRange(0, list.length - 2000);
+      }
+      await _prefs?.setStringList(_keyReadChapters, list);
+    }
+  }
+
+  Future<void> toggleChapterRead(String chapterId) async {
+    final list = _prefs?.getStringList(_keyReadChapters) ?? [];
+    if (list.contains(chapterId)) {
+      list.remove(chapterId);
+    } else {
+      list.add(chapterId);
+    }
+    await _prefs?.setStringList(_keyReadChapters, list);
   }
 
   HistoryEntry? getMangaProgress(String mangaId) {
