@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/manga_provider.dart';
@@ -17,13 +18,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final TextEditingController _searchCtrl = TextEditingController();
+  Timer? _debounceTimer;
   int _libraryTab = 0; // 0 = Favoritos, 1 = Historial
   bool _isCheckingUpdate = false;
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged(String val) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        Provider.of<MangaProvider>(context, listen: false).search(val);
+      }
+    });
   }
 
   @override
@@ -106,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
+              onChanged: _onSearchChanged,
               onSubmitted: (val) => mangaProvider.search(val),
             ),
           ),
@@ -123,6 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildFilterChip('Manga (Japón)', 'ja', mangaProvider),
                 const SizedBox(width: 6),
                 _buildFilterChip('Manhua (China)', 'zh', mangaProvider),
+                const SizedBox(width: 6),
+                _buildHentaiChip(mangaProvider),
               ],
             ),
           ),
@@ -236,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFilterChip(String label, String key, MangaProvider provider) {
-    final isSelected = provider.selectedCategory == key;
+    final isSelected = !provider.isHentaiZone && provider.selectedCategory == key;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
@@ -249,7 +264,35 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       side: BorderSide.none,
-      onSelected: (_) => provider.setCategory(key),
+      onSelected: (_) {
+        if (provider.isHentaiZone) {
+          provider.setHentaiZone(false);
+        }
+        provider.setCategory(key);
+      },
+    );
+  }
+
+  Widget _buildHentaiChip(MangaProvider provider) {
+    final isSelected = provider.isHentaiZone;
+    return ChoiceChip(
+      label: const Text('🔞 Zona +18 (Hentai)'),
+      selected: isSelected,
+      selectedColor: Colors.pinkAccent.shade700,
+      backgroundColor: const Color(0xFF2A151C),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.pinkAccent.shade100,
+        fontSize: 11,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      side: BorderSide(
+        color: isSelected ? Colors.transparent : Colors.pinkAccent.withValues(alpha: 0.4),
+        width: 0.8,
+      ),
+      onSelected: (selected) {
+        provider.setHentaiZone(selected);
+      },
     );
   }
 

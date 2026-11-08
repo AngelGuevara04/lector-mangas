@@ -29,6 +29,9 @@ class MangaProvider with ChangeNotifier {
   String _statusFilter = 'all'; // 'all', 'ongoing', 'completed'
   String get statusFilter => _statusFilter;
 
+  bool _isHentaiZone = false;
+  bool get isHentaiZone => _isHentaiZone;
+
   List<Manga> _favorites = [];
   List<Manga> get favorites => _favorites;
 
@@ -74,6 +77,7 @@ class MangaProvider with ChangeNotifier {
         originalLanguage: _selectedCategory == 'all' ? null : _selectedCategory,
         status: _statusFilter == 'all' ? null : _statusFilter,
         sortOrder: _sortOrder,
+        isHentai: _isHentaiZone,
       );
     } catch (e) {
       _error = 'No se pudo conectar con el servidor. Revisa tu conexión.';
@@ -101,6 +105,12 @@ class MangaProvider with ChangeNotifier {
     _executeSearchOrFetch();
   }
 
+  void setHentaiZone(bool isHentai) {
+    if (_isHentaiZone == isHentai) return;
+    _isHentaiZone = isHentai;
+    _executeSearchOrFetch();
+  }
+
   void _executeSearchOrFetch() {
     if (_searchQuery.trim().isEmpty) {
       fetchInitial();
@@ -124,6 +134,7 @@ class MangaProvider with ChangeNotifier {
           originalLanguage: _selectedCategory == 'all' ? null : _selectedCategory,
           status: _statusFilter == 'all' ? null : _statusFilter,
           sortOrder: _sortOrder,
+          isHentai: _isHentaiZone,
         );
       }
     } catch (e) {

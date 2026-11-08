@@ -10,12 +10,13 @@ class MangaDexService {
     'Accept': 'application/json',
   };
 
-  /// Búsqueda avanzada de manga con soporte de filtros (idioma original, texto, estado, orden)
+  /// Búsqueda avanzada de manga con soporte de filtros (idioma original, texto, estado, orden, y zona H/+18)
   Future<List<Manga>> searchManga({
     String? query,
     String? originalLanguage,
     String? status,
     String sortOrder = 'relevance',
+    bool isHentai = false,
     int limit = 24,
     int offset = 0,
   }) async {
@@ -23,8 +24,14 @@ class MangaDexService {
       'limit': limit.toString(),
       'offset': offset.toString(),
       'includes[]': 'cover_art',
-      'contentRating[]': ['safe', 'suggestive'],
     };
+
+    // Clasificación de contenido: Zona H vs Contenido Estándar
+    if (isHentai) {
+      queryParams['contentRating[]'] = ['erotica', 'pornographic'];
+    } else {
+      queryParams['contentRating[]'] = ['safe', 'suggestive'];
+    }
 
     if (query != null && query.trim().isNotEmpty) {
       queryParams['title'] = query.trim();
@@ -71,51 +78,85 @@ class MangaDexService {
     }
   }
 
-  /// Obtiene los mangas más populares
-  Future<List<Manga>> getPopularManga({
-    int limit = 24,
-    int offset = 0,
-    String? originalLanguage,
-    String sortOrder = 'popular',
-  }) async {
-    return searchManga(
-      originalLanguage: originalLanguage,
-      sortOrder: sortOrder,
-      limit: limit,
-      offset: offset,
-    );
-  }
-
-  /// Obtiene los capítulos de un manga
+  /// Obtiene los capítulos de un manga con paginación extendida y deduplicación inteligente
   Future<List<Chapter>> getChapters(
     String mangaId, {
     List<String> languages = const ['es', 'es-la'],
     String order = 'asc',
   }) async {
-    final queryParams = <String, dynamic>{
-      'limit': '100',
-      'includes[]': 'scanlation_group',
-      'order[chapter]': order,
-      'contentRating[]': ['safe', 'suggestive'],
-    };
-
-    if (languages.isNotEmpty) {
-      queryParams['translatedLanguage[]'] = languages;
-    }
-
-    final uri = Uri.parse('$baseUrl/manga/$mangaId/feed').replace(
-      queryParameters: _encodeQueryParameters(queryParams),
-    );
+    final allChapters = <Chapter>[];
+    int offset = 0;
+    const int pageSize = 100;
+    int total = 0;
 
     try {
-      final response = await http.get(uri, headers: defaultHeaders);
-      if (response.statusCode == 200) {
+      // Paginamos hasta obtener todos los capítulos (máximo 500 para evitar bloqueos)
+      do {
+        final queryParams = <String, dynamic>{
+          'limit': pageSize.toString(),
+          'offset': offset.toString(),
+          'includes[]': 'scanlation_group',
+          'order[chapter]': order,
+          'contentRating[]': ['safe', 'suggestive', 'erotica', 'pornographic'],
+        };
+
+        if (languages.isNotEmpty) {
+          queryParams['translatedLanguage[]'] = languages;
+        }
+
+        final uri = Uri.parse('$baseUrl/manga/$mangaId/feed').replace(
+          queryParameters: _encodeQueryParameters(queryParams),
+        );
+
+        final response = await http.get(uri, headers: defaultHeaders);
+        if (response.statusCode != 200) break;
+
         final data = json.decode(response.body);
+        total = data['total'] as int? ?? 0;
         final list = data['data'] as List<dynamic>? ?? [];
-        return list.map((item) => Chapter.fromMangaDexJson(item, mangaId)).toList();
+        if (list.isEmpty) break;
+
+        for (final item in list) {
+          allChapters.add(Chapter.fromMangaDexJson(item, mangaId));
+        }
+
+        offset += pageSize;
+      } while (offset < total && offset < 500);
+
+      // Si no hay capítulos en español, intentamos en inglés para que no quede vacío
+      if (allChapters.isEmpty && languages.any((l) => l.startsWith('es'))) {
+        return getChapters(mangaId, languages: ['en'], order: order);
       }
+
+      // Deduplicación inteligente: si un capítulo está repetido por varios scanlations,
+      // priorizamos el que tenga páginas reales (pagesCount > 0) y sin externalUrl
+      final chapterMap = <String, Chapter>{};
+      for (final ch in allChapters) {
+        final key = '${ch.chapter}_${ch.language}';
+        if (!chapterMap.containsKey(key)) {
+          chapterMap[key] = ch;
+        } else {
+          final existing = chapterMap[key]!;
+          // Si el existente es externo (ej. MangaPlus sin páginas) pero el nuevo tiene páginas, lo reemplazamos
+          if (existing.isExternal && !ch.isExternal && ch.pagesCount > 0) {
+            chapterMap[key] = ch;
+          } else if (ch.pagesCount > existing.pagesCount) {
+            chapterMap[key] = ch;
+          }
+        }
+      }
+
+      final deduplicated = chapterMap.values.toList();
+
+      // Ordenar numéricamente (1, 2, 3... 10... 100) en lugar de alfabético ("1", "10", "2")
+      deduplicated.sort((a, b) {
+        final comp = a.numericChapter.compareTo(b.numericChapter);
+        return order == 'asc' ? comp : -comp;
+      });
+
+      return deduplicated;
     } catch (_) {}
-    return [];
+    return allChapters;
   }
 
   /// Obtiene un manga específico por su ID

@@ -8,6 +8,7 @@ class Chapter {
   final DateTime? publishAt;
   final int pagesCount;
   final String? scanlationGroup;
+  final String? externalUrl;
 
   const Chapter({
     required this.id,
@@ -19,7 +20,12 @@ class Chapter {
     this.publishAt,
     this.pagesCount = 0,
     this.scanlationGroup,
+    this.externalUrl,
   });
+
+  bool get isExternal => externalUrl != null && externalUrl!.trim().isNotEmpty;
+
+  double get numericChapter => double.tryParse(chapter) ?? 0.0;
 
   String get displayName {
     final buffer = StringBuffer();
@@ -48,6 +54,8 @@ class Chapter {
         return '🇫🇷 FR';
       case 'it':
         return '🇮🇹 IT';
+      case 'ja':
+        return '🇯🇵 JA';
       default:
         return language.toUpperCase();
     }
@@ -62,6 +70,7 @@ class Chapter {
     final title = attributes['title'] as String?;
     final language = attributes['translatedLanguage'] as String? ?? 'es';
     final pagesCount = attributes['pages'] as int? ?? 0;
+    final externalUrl = attributes['externalUrl'] as String?;
 
     DateTime? publishAt;
     if (attributes['publishAt'] != null) {
@@ -88,6 +97,7 @@ class Chapter {
       publishAt: publishAt,
       pagesCount: pagesCount,
       scanlationGroup: groupName,
+      externalUrl: externalUrl,
     );
   }
 
@@ -102,6 +112,7 @@ class Chapter {
       'publishAt': publishAt?.toIso8601String(),
       'pagesCount': pagesCount,
       'scanlationGroup': scanlationGroup,
+      'externalUrl': externalUrl,
     };
   }
 
@@ -116,6 +127,7 @@ class Chapter {
       publishAt: map['publishAt'] != null ? DateTime.tryParse(map['publishAt']) : null,
       pagesCount: map['pagesCount'] ?? 0,
       scanlationGroup: map['scanlationGroup'],
+      externalUrl: map['externalUrl'],
     );
   }
 }

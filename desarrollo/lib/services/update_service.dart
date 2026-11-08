@@ -21,7 +21,7 @@ class UpdateInfo {
 }
 
 class UpdateService {
-  static const String currentVersion = 'v1.0.2';
+  static const String currentVersion = 'v1.0.3';
   static const String repoOwner = 'AngelGuevara04';
   static const String repoName = 'lector-mangas';
 
@@ -129,6 +129,43 @@ $description
     final uri = Uri.parse(issuesUrl).replace(
       queryParameters: {
         'title': '[$category] $title',
+        'body': body,
+      },
+    );
+
+    return await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  /// Genera y abre un reporte de capítulo caído directo a GitHub Issues
+  static Future<bool> openChapterReport({
+    required String mangaTitle,
+    required String mangaId,
+    required String chapterNum,
+    required String chapterId,
+    required String language,
+    String? scanlationGroup,
+    String? externalUrl,
+    String? errorReason,
+  }) async {
+    final body = '''
+### 🚨 Reporte de Capítulo Caído o No Disponible
+
+* **Manga:** $mangaTitle
+* **ID Manga:** `$mangaId`
+* **Capítulo:** $chapterNum (ID: `$chapterId`)
+* **Idioma:** $language
+* **Scanlation / Grupo:** ${scanlationGroup ?? 'Desconocido'}
+* **Enlace Externo (si aplica):** ${externalUrl ?? 'Ninguno'}
+* **Problema:** ${errorReason ?? 'No hay páginas disponibles para visualización.'}
+* **Versión de la App:** $currentVersion
+
+---
+*Reporte automático generado desde MangaFlow Mobile*
+''';
+
+    final uri = Uri.parse(issuesUrl).replace(
+      queryParameters: {
+        'title': '[Capítulo Caído] $mangaTitle - Cap $chapterNum',
         'body': body,
       },
     );

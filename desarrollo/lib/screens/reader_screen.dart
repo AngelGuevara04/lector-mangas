@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/chapter.dart';
 import '../providers/reader_provider.dart';
 import '../widgets/optimized_image.dart';
+import '../services/update_service.dart';
 
 class ReaderScreen extends StatefulWidget {
   final Chapter chapter;
@@ -90,25 +91,99 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ],
               ),
             )
-          else if (reader.error != null)
+          else if (currentCh.isExternal)
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-                    const SizedBox(height: 12),
-                    Text(
-                      reader.error!,
+                    const Icon(Icons.menu_book, color: Colors.blueAccent, size: 56),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Capítulo Oficial Protegido (MangaPlus)',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent),
-                      onPressed: () => reader.loadChapter(currentCh),
-                      child: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Shueisha publica este capítulo en MangaPlus y no permite almacenar sus imágenes en servidores externos.\n\nPuedes leerlo de forma 100% legal y gratuita con un toque en su visor oficial:',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[400], fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Leer en MangaPlus Oficial'),
+                      onPressed: () {
+                        if (currentCh.externalUrl != null) {
+                          UpdateService.openUrl(currentCh.externalUrl!);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Colors.redAccent, width: 0.8),
+                      ),
+                      icon: const Icon(Icons.report_problem, size: 16),
+                      label: const Text('Reportar si el enlace no funciona'),
+                      onPressed: () => _reportBrokenChapter(context, currentCh, 'Enlace externo de MangaPlus caído o inaccesible'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (reader.error != null || reader.pageUrls.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.broken_image_outlined, color: Colors.redAccent, size: 54),
+                    const SizedBox(height: 14),
+                    Text(
+                      reader.error ?? 'No hay páginas disponibles para este capítulo.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'El scanlation o servidor no tiene los archivos de este capítulo en este momento. Puedes reintentar o reportarlo para que lo revisemos.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12.5),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurpleAccent,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Reintentar'),
+                          onPressed: () => reader.loadChapter(currentCh),
+                        ),
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            side: const BorderSide(color: Colors.redAccent),
+                          ),
+                          icon: const Icon(Icons.report, size: 18),
+                          label: const Text('Reportar Caído'),
+                          onPressed: () => _reportBrokenChapter(context, currentCh, reader.error ?? 'Sin páginas disponibles'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -505,6 +580,24 @@ class _ReaderScreenState extends State<ReaderScreen> {
               onPressed: () => reader.goToNextChapter(),
             ),
         ],
+      ),
+    );
+  }
+
+  void _reportBrokenChapter(BuildContext context, Chapter ch, String reason) {
+    UpdateService.openChapterReport(
+      mangaTitle: ch.displayName.split(':').first,
+      mangaId: ch.mangaId,
+      chapterNum: ch.chapter,
+      chapterId: ch.id,
+      language: ch.languageDisplay,
+      scanlationGroup: ch.scanlationGroup,
+      externalUrl: ch.externalUrl,
+      errorReason: reason,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Abriendo GitHub Issues para registrar tu reporte...'),
       ),
     );
   }

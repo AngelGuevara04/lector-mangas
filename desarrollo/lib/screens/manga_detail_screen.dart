@@ -325,19 +325,45 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                      title: Text(
-                        ch.displayName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              ch.displayName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (ch.isExternal)
+                            Container(
+                              margin: const EdgeInsets.only(left: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.blueAccent, width: 0.5),
+                              ),
+                              child: const Text(
+                                'MangaPlus',
+                                style: TextStyle(color: Colors.lightBlueAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                        ],
                       ),
                       subtitle: Text(
-                        '${ch.languageDisplay} • ${ch.scanlationGroup ?? 'MangaDex'} • ${ch.pagesCount} págs',
+                        ch.isExternal
+                            ? '${ch.languageDisplay} • Publicación Oficial Directa'
+                            : '${ch.languageDisplay} • ${ch.scanlationGroup ?? 'MangaDex'} • ${ch.pagesCount} págs',
                         style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white38),
+                      trailing: Icon(
+                        ch.isExternal ? Icons.open_in_new : Icons.arrow_forward_ios,
+                        size: 14,
+                        color: ch.isExternal ? Colors.lightBlueAccent : Colors.white38,
+                      ),
                       onTap: () => _openReader(context, ch),
                     ),
                   );
