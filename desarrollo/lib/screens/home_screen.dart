@@ -6,6 +6,7 @@ import '../widgets/manga_card.dart';
 import '../widgets/optimized_image.dart';
 import '../services/storage_service.dart';
 import '../services/update_service.dart';
+import '../services/report_service.dart';
 import 'manga_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -824,11 +825,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- Modal de Buzón de Mejoras / GitHub Issues ---
+  // --- Modal de Buzón de Mejoras / Sugerencias Directo ---
   void _showFeedbackDialog(BuildContext context) {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     String category = 'Mejora';
+    bool isSending = false;
 
     showModalBottomSheet(
       context: context,
@@ -857,7 +859,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Las solicitudes se registran en el repositorio de GitHub para programarlas en la próxima actualización.',
+                    'Tu sugerencia se enviará directamente para ser analizada e integrada en la app.',
                     style: TextStyle(color: Colors.white60, fontSize: 12),
                   ),
                   const SizedBox(height: 14),
@@ -910,7 +912,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Botón Enviar a GitHub
+                  // Botón Enviar Directamente
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -919,17 +921,53 @@ class _HomeScreenState extends State<HomeScreen> {
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      icon: const Icon(Icons.send),
-                      label: const Text('Enviar Solicitud a GitHub'),
-                      onPressed: () {
-                        if (titleCtrl.text.trim().isEmpty) return;
-                        Navigator.pop(ctx);
-                        UpdateService.openFeatureRequest(
-                          title: titleCtrl.text.trim(),
-                          description: descCtrl.text.trim(),
-                          category: category,
-                        );
-                      },
+                      icon: isSending
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.send),
+                      label: Text(isSending ? 'Enviando...' : 'Enviar Solicitud'),
+                      onPressed: isSending
+                          ? null
+                          : () async {
+                              final title = titleCtrl.text.trim();
+                              final desc = descCtrl.text.trim();
+                              if (title.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Por favor escribe un título para tu sugerencia.'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isSending = true);
+
+                              final ok = await ReportService.sendReport(
+                                type: category,
+                                title: title,
+                                description: desc.isEmpty ? 'Sin descripción' : desc,
+                              );
+
+                              if (context.mounted) {
+                                Navigator.pop(ctx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ok
+                                          ? '¡Sugerencia enviada con éxito! Antigravity la revisará.'
+                                          : 'Error al enviar la sugerencia. Comprueba tu conexión.',
+                                    ),
+                                    backgroundColor: ok ? Colors.green[800] : Colors.red[800],
+                                  ),
+                                );
+                              }
+                            },
                     ),
                   ),
                 ],

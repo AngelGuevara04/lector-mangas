@@ -5,6 +5,7 @@ import '../models/chapter.dart';
 import '../providers/reader_provider.dart';
 import '../widgets/optimized_image.dart';
 import '../services/update_service.dart';
+import '../services/report_service.dart';
 
 import '../models/manga.dart';
 
@@ -701,8 +702,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  void _reportBrokenChapter(BuildContext context, Chapter ch, String reason) {
-    UpdateService.openChapterReport(
+  void _reportBrokenChapter(BuildContext context, Chapter ch, String reason) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reportando capítulo caído directamente...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    final ok = await ReportService.reportBrokenChapter(
       mangaTitle: ch.displayName.split(':').first,
       mangaId: ch.mangaId,
       chapterNum: ch.chapter,
@@ -712,10 +720,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
       externalUrl: ch.externalUrl,
       errorReason: reason,
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Abriendo GitHub Issues para registrar tu reporte...'),
-      ),
-    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? '¡Capítulo reportado exitosamente! El asistente lo reparará automáticamente.'
+                : 'Error al enviar el reporte. Por favor revisa tu conexión a internet.',
+          ),
+          backgroundColor: ok ? Colors.green[800] : Colors.red[800],
+        ),
+      );
+    }
   }
 }
