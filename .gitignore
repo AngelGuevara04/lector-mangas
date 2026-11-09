@@ -11,6 +11,7 @@
 **/.gradle/
 
 # Archivos de entorno y temporales
+*.log
 *.iml
 .DS_Store
 Thumbs.db
